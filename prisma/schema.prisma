@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  avatar    String?
+  password  String
+  name      String
+  role      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  propsal   Proposal[]
+  upvotes   Upvote[]
+}
+
+model Category {
+  id       String     @id @default(uuid())
+  category String     @unique
+  propsal  Proposal[]
+
+  @@index([category])
+}
+
+/*
+ * Не уверен что для категории и статуса нужно каскадное удаление,
+ * поскольку может привести к серьезным потреям данным и нарушением бизнес логики
+ */
+
+model Status {
+  id      String     @id @default(uuid())
+  status  String     @unique
+  propsal Proposal[]
+
+  @@index([status])
+}
+
+model Proposal {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  categoryName  String
+  statusName    String
+  authorId    String
+  countVote   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  upvote      Upvote[]
+
+  author   User     @relation(fields: [authorId], references: [id])
+  category Category @relation(fields: [categoryName], references: [category])
+  staus    Status   @relation(fields: [statusName], references: [status])
+}
+
+model Upvote {
+  id         String   @id @default(uuid())
+  userId     String
+  proposalId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id])
+  proposal Proposal @relation(fields: [proposalId], references: [id])
+
+  @@unique([userId, proposalId]) //Делаю для уникальности голоса в 1 предложение
+}
+
+/**
+ * P.s. По поводу названия таблиц, не знаю как в вашей компании правильно, поэтому пишу везеде в единственном с числе.
+ * Надеюсь не будет считаться ошибкой
+ * P.s.s. Знаю о существовании и более продвинутых алгоритмов генераци id по типу cuid и NanoID,
+ * но привычным благодаря работе стал uuid.
+ */
